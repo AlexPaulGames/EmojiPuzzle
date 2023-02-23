@@ -1,0 +1,72 @@
+#unity-canvas {
+    background: #FFFFFF
+}
+body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    padding: 0;
+    margin: 0;
+    background: #DAFDFD
+}
+
+#gameContainer {
+    background: transparent !important;
+    position: absolute;
+}
+
+#gameContainer canvas {
+        position: absolute;
+    }
+
+#gameContainer canvas[data-pixel-art="true"] {
+            position: absolute;
+            image-rendering: optimizeSpeed;
+            image-rendering: -webkit-crisp-edges;
+            image-rendering: -moz-crisp-edges;
+            image-rendering: -o-crisp-edges;
+            image-rendering: crisp-edges;
+            image-rendering: -webkit-optimize-contrast;
+            image-rendering: optimize-contrast;
+            image-rendering: pixelated;
+            -ms-interpolation-mode: nearest-neighbor;
+        }
+
+#custom-logo, #custom-loader {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+#custom-logo {
+    background-image: url('Loading Icon.png');
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+
+    width: 200px;
+    height: 200px;
+}
+
+#custom-loader {
+    margin-top: 155px;
+    width: 80%;
+    height: 50px;
+    background: lightgray;
+    box-shadow: 0px 0px 15px 5px black;
+}
+
+#custom-loader .fill {
+    width: 0%;
+    height: 100%;
+    background: yellow;
+}
+
+#custom-loader .label {
+    position: relative;
+    top: -44px;
+    font-size: 35px;
+    text-align: center;
+    font-family: sans-serif, calibri;
+}

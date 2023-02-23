@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en-us">
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script src="https://yandex.ru/ads/system/context.js" async></script>
+    <link rel="stylesheet" href="TemplateData/style.css">
+    <title>Emoji puzzle</title>
+</head>
+
+<body>
+    <div id="gameContainer">
+        <canvas id="unity-canvas" data-pixel-art=""></canvas>
+        <div id="unity-custom-loading-screen">
+            <div id="custom-logo"></div>
+            <div id="custom-loader">
+                <div class="fill"></div>
+                <div class="label"></div>
+            </div>
+        </div>
+        <script src="Build/EmojiPuzzle.loader.js"></script>
+
+        <script>
+            var canvas = document.querySelector("#unity-canvas");
+            var loadingScreen = document.querySelector("#unity-custom-loading-screen");
+            var customLoadingBar = document.querySelector("#custom-loader");
+			var config = {
+				dataUrl: "Build/EmojiPuzzle.data.unityweb",
+				frameworkUrl: "Build/EmojiPuzzle.framework.js.unityweb",
+				codeUrl: "Build/EmojiPuzzle.wasm.unityweb",
+				streamingAssetsUrl: "StreamingAssets",
+				companyName: "AlexPaulGames",
+				productName: "Emoji puzzle",
+				productVersion: "1.0.0",
+			};
+			var scaleToFit;
+            var unityI = null;
+			try {
+				scaleToFit = !!JSON.parse("");
+			} catch (e) {
+				scaleToFit = true;
+			}
+            loadingScreen.style.display = "block";
+
+            function progressHandler(value) {
+                const fill = customLoadingBar.getElementsByClassName("fill")[0];
+                const fillText = customLoadingBar.getElementsByClassName("label")[0];
+
+                fill.animate(
+                    [
+                        { width: (value * 100) + "%" }
+                    ],
+                    {
+                        duration: 300,
+                        fill: "forwards"
+                    }
+                );
+
+                fillText.textContent = (value * 100).toFixed() + "%";
+            }
+			function onResize() {
+				var container = canvas.parentElement;
+				var w;
+				var h;
+
+				if (scaleToFit) {
+					w = window.innerWidth;
+					h = window.innerHeight;
+
+					var r = 1920 / 1080;
+
+					if (w * r > window.innerHeight) {
+						w = Math.min(w, Math.ceil(h / r));
+					}
+					h = Math.floor(w * r);
+				} else {
+					w = 1080;
+					h = 1920;
+				}
+
+				container.style.width = canvas.style.width = w + "px";
+				container.style.height = canvas.style.height = h + "px";
+				container.style.top = Math.floor((window.innerHeight - h) / 2) + "px";
+				container.style.left = Math.floor((window.innerWidth - w) / 2) + "px";
+			}
+            createUnityInstance(canvas, config, (progress) => {
+                progressHandler(progress);
+            }).then(function (instance) {
+                canvas = instance.Module.canvas;
+                unityI = instance;
+                loadingScreen.style.display = "none";
+                if (/iPhone|iPad|iPod|Android/i.test(navigator.userAgent)) {
+                    document.body.style.background = "#F0F0E6";
+                    console.log("MOBILE");
+                }
+                else {
+                    console.log("DESKTOP");
+                }
+                onResize();
+            });
+			window.addEventListener('resize', onResize);
+			onResize();
+        </script>
+
+        <!-- Yandex Games SDK -->
+        <script src="https://yandex.ru/games/sdk/v2"></script>
+        <script>
+            var player;
+            var sdk;
+            var payments = null;
+
+            YaGames.init({
+                adv: {
+                    onAdvClose: wasShown => {
+                        console.info('adv closed!');
+                    }
+                }
+            })
+                .then(ysdk => {
+                    sdk = ysdk;
+                    sdk.adv.showFullscreenAdv({ callbacks: {} });
+                });
+
+            var lb;
+
+            function GetLeaderBoard() {
+                sdk.getLeaderboards().then(_lb => lb = _lb);
+            }
+
+            function SetLeaderBoard(score) {
+                sdk.getLeaderboards()
+                    .then(lb => {
+                        console.log(score);
+                        lb.setLeaderboardScore('LeaderBoard', score);
+                    });
+            }
+
+            function GetLeaderBoardEntries() {
+                sdk.getLeaderboards()
+                    .then(lb => {
+                        lb.getLeaderboardEntries('LeaderBoard', { quantityTop: 10, includeUser: true, quantityAround: 3 }).then(res => {
+                            console.log(res);
+                            unityI.SendMessage('YandexSDK', 'BoardEntriesReady', JSON.stringify(res));
+                        });
+                    });
+            }
+
+
+
+            function auth() {
+                initPlayer().then(() => {
+                    getUser();
+                }).catch(err => {
+                    sdk.auth.openAuthDialog().then(() => {
+                        initPlayer();
+                        getUser();
+                    });
+                });
+            }
+
+
+            function initPlayer() {
+                console.log('InitPlayerTry')
+                return sdk.getPlayer().then(_player => {
+                    console.log('InitPlayer2');
+                    player = _player;
+                });
+            }
+
+            function getUser() {
+                console.log('try to get Name');
+                var data = player.getName();
+                unityI.SendMessage('YandexSDK', 'AuthenticateSuccess', data);
+                console.log('getName done');
+
+            }
+
+            function getUserData() {
+                player.getData().then(stats => {
+                    console.log('Data is getting');
+                    console.log(JSON.stringify(stats));
+                    GetLeaderBoard();
+                    unityI.SendMessage('YandexSDK', 'DataGetting', JSON.stringify(stats));
+                });
+            }
+
+            function setUserData(_data) {
+                console.log('Try Save');
+                console.log(_data);
+                player.setData({ data: _data }).then(() => {
+                    console.log('saved');
+                }).catch(() => { console.log('unsaved') });
+            }
+
+            function showFullscrenAd() {
+                sdk.adv.showFullscreenAdv({
+                    callbacks: {
+                        onClose: function (wasShown) { },
+                        onError: function (error) { }
+                    }
+                })
+            }
+
+            function showRewardedAd(id) {
+                sdk.adv.showRewardedVideo({
+                    callbacks: {
+                        onOpen: () => { },
+                        onRewarded: () => {
+                            unityI.SendMessage('YandexSDK', 'RewardGetting');
+                            console.log('Rewarded! Id: ' + id);
+                        },
+                        onClose: () => { },
+                        onError: (e) => {
+                            var data = { "id": id, "error": error };
+                            console.log('Error while open video ad:', e);
+                        }
+                    }
+                })
+            }
+        </script>
+
+    </div>
+</body>
+
+</html>
